@@ -86,10 +86,16 @@ class AqaraGateway:
         # print ('RHAY temperature', deviceData['temperature'])
         return float(deviceData['temperature'])/100
 	
-	def get_Temperature(self):
-		deviceSID = '158d0001081511'
-		cmd = '{"cmd":"read", "sid":"' + self.deviceSID + '"}'
+	def get_temperature(SID):
+		# deviceSID = '158d0001081511'
+        print ("get temp")
+		cmd = '{"cmd":"read", "sid":"' + SID + '"}'
+        print (cmd)
 		resp = self.socketSendMsg(cmd)
 		return resp
+
+    @property
+    def lastTemp(self):
+        return self.get_temperature("158d0001143246")
 
 
