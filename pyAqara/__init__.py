@@ -12,7 +12,7 @@ import homeassistant.helpers.config_validation as cv
 
 class AqaraGateway:
 
-	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ipaddr = '192.168.1.85'
     serverPort = 9898
     multicastAddress = '224.0.0.50'
@@ -21,7 +21,7 @@ class AqaraGateway:
     device = []
 
     def __init__(self):
-        print ('AqaraGateway Init()')
+        # print ('AqaraGateway Init()')
         self.data = None
 
     def socketSendMsg(self,cmd):
@@ -29,21 +29,28 @@ class AqaraGateway:
         port = self.serverPort
         sSocket = self.serverSocket
         
-        print ('AqaraGateway socketSendMsg()')
+        # print ('AqaraGateway socketSendMsg()')
 
         try:
-            sSocket.sendto(bytes(cmd,'utf8'),(ip,port))
-            recvData, addr = sSocket.recvfrom(1024) # buffer size is 1024 bytes
-            decodedJson = recvData.decode('utf-8')
-            print (decodedJson)
+            # sSocket.sendto(bytes(cmd,'utf8'),(ip,port))
+            sSocket.connect((ip, int(port)))
+            sSocket.send(cmd.encode())
+            # sSocket.sendto(cmd,(ip,port))
+            recvData, addr = sSocket.recvfrom(4096) # buffer size is 1024 bytes
+            # decodedJson = recvData.decode('utf-8')
+            decodedJson = recvData.decode()
+            # print ("RHAY AqaraGateway socketSendMsg(): ",decodedJson)
+            # sSocket.close()
         except:
-            print ('issue to use socket')
+            # print ('issue to use socket')
+            _LOGGER.error("Aqara Gateway Failed to connect the ip %s", ip)
 
         try:
             jsonMsg = json.loads(decodedJson)
-            
+            # print ("jsonMsg : ",jsonMsg)
+            # print ("jsonMsg cmd : ",jsonMsg['cmd'])
             if jsonMsg['cmd'] == "get_id_list":
-                print ('Gateway json()')
+                # print ('Gateway json()')
                 newData = self.getDeviceList(jsonMsg)
                 return newData
 
@@ -55,22 +62,25 @@ class AqaraGateway:
                     socketSendMsg(deviceCmd)
 
             elif jsonMsg['cmd'] == "read_ack":
+                # print ("jsonMsg cmd is Read Ack")
                 # newData = self.getInfoForSid(jsonMsg)
                 # return newData
-                deviceData = json.loads(msg['data'])
-				return float(deviceData['temperature'])/100
-                
+                deviceData = json.loads(jsonMsg['data'])
+                # print ("json deviceData: ", deviceData)
+                return float(deviceData['temperature'])/100
+                # return float(jsonMsg['data']['temperature'])/100
         except:
-            print ("issue with the json")
+            # print ("issue with the json")
+            _LOGGER.error("Aqara Gateway Failed to manage the json")
      
     def getDeviceList(self,msg):
-        print ('Gateway getDeviceList()')
+        # print ('Gateway getDeviceList()')
         devices = json.loads(msg['data'])
 
         for device in devices:
 
             self.device.append(device)
-            print ('RHAY devices : ', device)
+            # print ('RHAY devices : ', device)
 
         return self.device
 
@@ -85,14 +95,14 @@ class AqaraGateway:
         # print deviceData
         # print ('RHAY temperature', deviceData['temperature'])
         return float(deviceData['temperature'])/100
-	
-	def get_temperature(SID):
-		# deviceSID = '158d0001081511'
-        print ("get temp")
-		cmd = '{"cmd":"read", "sid":"' + SID + '"}'
-        print (cmd)
-		resp = self.socketSendMsg(cmd)
-		return resp
+    
+    def get_temperature(self,SID):
+        # deviceSID = '158d0001081511'
+        # print ("get temp")
+        cmd = '{"cmd":"read", "sid":"' + SID + '"}'
+        # print (cmd)
+        resp = self.socketSendMsg(cmd)
+        return resp
 
     @property
     def lastTemp(self):
