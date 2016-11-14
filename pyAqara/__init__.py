@@ -21,7 +21,7 @@ class AqaraGateway:
     device = []
 
     def __init__(self):
-        # print ('AqaraGateway Init()')
+        print ('AqaraGateway Init()')
         self.data = None
 
     def socketSendMsg(self,cmd):
@@ -104,8 +104,8 @@ class AqaraGateway:
         resp = self.socketSendMsg(cmd)
         return resp
 
-    @property
-    def lastTemp(self):
-        return self.get_temperature("158d0001143246")
+    # @property
+    # def lastTemp(self):
+    #     return self.get_temperature("158d0001143246")
 
 
