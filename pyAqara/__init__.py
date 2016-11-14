@@ -5,6 +5,7 @@
     ############################################################################
 
 import socket
+import json
 import voluptuous as vol
 import logging
 import homeassistant.helpers.config_validation as cv

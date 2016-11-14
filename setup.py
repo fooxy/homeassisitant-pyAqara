@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='pyAqara',
-      version='1.2',
+      version='1.4',
       description='Aqara gateway integration',
       author='fooxy',
       author_email='fooxy@gmail.com',
