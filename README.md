@@ -8,16 +8,9 @@ STATUS : PRELIMINARY DRAFT
 Based on the code of snOOrz:
 https://github.com/snOOrz/homebridge-aqara
 
+This repository is contain the core code.
+For the custom component refer to efer to the link below
+https://github.com/fooxy/homeassistant-aqara
 
-### Installation
-1. Install Home-Assistant,
-2. Download and place the Aqara.py file in the home-assistant folder:
 
-`.homeassistant/custom_components/sensor/Aqara.py`
-
-3. Add the new component in the configuration.yaml:
-
-`sensor :`
-
-`   platform: Aqara`
 
