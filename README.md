@@ -1,4 +1,4 @@
-# homeassisitant-aqara
+# homeassisitant-pyAqara
 Home-Assistant plugin for Aqara gateway and devices
 
 Aqara plugin for [Home-Assistant](https://home-assistant.io/)
