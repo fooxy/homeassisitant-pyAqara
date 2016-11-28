@@ -6,9 +6,7 @@
 
 import socket
 import json
-import voluptuous as vol
 import logging
-import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,94 +19,56 @@ class AqaraGateway:
     multicastPort = 4321
 
     def __init__(self):
-        print ('AqaraGateway Init()')
         self.data = None
 
     def socketSendMsg(self,cmd):
         ip = self.ipaddr
         port = self.serverPort
         sSocket = self.serverSocket
-        
-        print ('AqaraGateway socketSendMsg()')
 
         try:
-            print ('AqaraGateway socketSendMsg() - try')
-            # sSocket.sendto(bytes(cmd,'utf8'),(ip,port))
-            sSocket.connect((ip, int(port)))
-            sSocket.send(cmd.encode())
-            # sSocket.sendto(cmd,(ip,port))
-            recvData, addr = sSocket.recvfrom(4096) # buffer size is 1024 bytes
-            # decodedJson = recvData.decode('utf-8')
-            print ("response before from gateway lenth :",len(recvData))
-            if len(recvData) not "":
-                print ("response from gateway lenth :",len(recvData))
+            sSocket.settimeout(5.0)
+            sSocket.sendto(cmd.encode(),(ip,port))
+            sSocket.settimeout(5.0)
+            recvData, addr = sSocket.recvfrom(1024) # buffer size is 1024 bytes / s.recv() for TCP
+            if len(recvData) is not None:
                 decodedJson = recvData.decode()
-                # print ("RHAY AqaraGateway socketSendMsg(): ",decodedJson)
-            else
-            print ("no response from gateway")
+            else:
+                _LOGGER.error("no response from gateway")
                 recvData = None
-            # sSocket.close()
-        except:
-            print ('issue to use socket')
-            _LOGGER.error("Aqara Gateway Failed to connect the ip %s", ip)
+        except socket.timeout:
+            _LOGGER.error("Timeout on socket - Failed to connect the ip %s", ip)
+            return None
+            sSocket.close()
 
-        if recvData not None:
+        if recvData is not None:
             try:
                 jsonMsg = json.loads(decodedJson)
-                # print ("jsonMsg : ",jsonMsg)
-                # print ("jsonMsg cmd : ",jsonMsg['cmd'])
-                if jsonMsg['cmd'] == "get_id_list":
-                    # print ('Gateway json()')
-                    return json.loads(jsonMsg['data'])
 
+                if jsonMsg['cmd'] == "get_id_list":
+                    return json.loads(jsonMsg['data'])
                 elif jsonMsg['cmd'] == "get_id_list_ack":
-                    device_SID = json.loads(jsonMsg['data'])
-                    return device_SID
+                    devices_SID = json.loads(jsonMsg['data'])
+                    return devices_SID
                 elif jsonMsg['cmd'] == "read_ack":
-                    # print ("jsonMsg cmd is Read Ack")
-                    # newData = self.getInfoForSid(jsonMsg)
-                    # return newData
                     deviceData = json.loads(jsonMsg['data'])
-                    # print ("json deviceData: ", deviceData)
-                    return float(deviceData['temperature'])/100
-                    # return float(jsonMsg['data']['temperature'])/100
+                    return deviceData
             except:
-                # print ("issue with the json")
                 _LOGGER.error("Aqara Gateway Failed to manage the json")
-        else
+        else:
             return None
      
     def get_devicesList(self):
-        # print ('Gateway getDeviceList()')
-        devices = []
         cmd = '{"cmd":"get_id_list"}'
         resp = self.socketSendMsg(cmd)
-        print (resp)
-        # for device in devices:
-        #     self.device.append(device)
-        # return self.device
-
-        # print self.devices_Sid
-        # print "number of devices : ", len(devices)
-
-        # print json.dumps(jsonData, sort_keys=True, indent=4) # convert to formatted json str
-
-    def get_infoForSid(self,msg):
-        # print ('RHAY getInfoForSid')
-        deviceData = json.loads(msg['data'])
-        # print deviceData
-        # print ('RHAY temperature', deviceData['temperature'])
-        return float(deviceData['temperature'])/100
+        return resp
     
     def get_temperature(self,SID):
-        # deviceSID = '158d0001081511'
-        print ("get temp")
         cmd = '{"cmd":"read", "sid":"' + SID + '"}'
-        # print (cmd)
         resp = self.socketSendMsg(cmd)
-        print (resp)
-        return resp
+        return float(resp['temperature'])/100
 
-    # @property
-    # def lastTemp(self):
-    #     return self.get_temperature("158d0001143246")
+    def get_humidity(self,SID):
+        cmd = '{"cmd":"read", "sid":"' + SID + '"}'
+        resp = self.socketSendMsg(cmd)
+        return float(resp['humidity'])/100
