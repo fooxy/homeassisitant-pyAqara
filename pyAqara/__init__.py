@@ -32,7 +32,7 @@ class AqaraGateway:
             sSocket.settimeout(5.0)
             recvData, addr = sSocket.recvfrom(1024) # buffer size is 1024 bytes / s.recv() for TCP
             if len(recvData) is not None:
-                decodedJson = recvData.decode()
+                decodedData = recvData.decode()
             else:
                 _LOGGER.error("no response from gateway")
                 recvData = None
@@ -40,19 +40,18 @@ class AqaraGateway:
             _LOGGER.error("Timeout on socket - Failed to connect the ip %s", ip)
             return None
             sSocket.close()
-
         if recvData is not None:
             try:
-                jsonMsg = json.loads(decodedJson)
-
+                jsonMsg = json.loads(decodedData)
                 if jsonMsg['cmd'] == "get_id_list":
-                    return json.loads(jsonMsg['data'])
+                    return json.loads(jsonMsg)
                 elif jsonMsg['cmd'] == "get_id_list_ack":
                     devices_SID = json.loads(jsonMsg['data'])
                     return devices_SID
                 elif jsonMsg['cmd'] == "read_ack":
-                    deviceData = json.loads(jsonMsg['data'])
-                    return deviceData
+                    return jsonMsg
+                else:
+                    return None
             except:
                 _LOGGER.error("Aqara Gateway Failed to manage the json")
         else:
@@ -63,12 +62,19 @@ class AqaraGateway:
         resp = self.socketSendMsg(cmd)
         return resp
     
+    def get_model(self,SID):
+        cmd = '{"cmd":"read", "sid":"' + SID + '"}'
+        resp = self.socketSendMsg(cmd)
+        return resp['model']
+
     def get_temperature(self,SID):
         cmd = '{"cmd":"read", "sid":"' + SID + '"}'
         resp = self.socketSendMsg(cmd)
-        return float(resp['temperature'])/100
+        respData = json.loads(resp['data'])
+        return float(respData['temperature'])/100
 
     def get_humidity(self,SID):
         cmd = '{"cmd":"read", "sid":"' + SID + '"}'
         resp = self.socketSendMsg(cmd)
-        return float(resp['humidity'])/100
+        respData = json.loads(resp['data'])
+        return float(respData['humidity'])/100
