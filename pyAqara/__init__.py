@@ -13,18 +13,25 @@ _LOGGER = logging.getLogger(__name__)
 class AqaraGateway:
 
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ipaddr = '192.168.1.85'
-    serverPort = 9898
+    ipaddr = None
+    serverPort = None
     multicastAddress = '224.0.0.50'
     multicastPort = 4321
 
     def __init__(self):
         self.data = None
+        self.get_gatewayConnexionData()
 
     def socketSendMsg(self,cmd):
-        ip = self.ipaddr
-        port = self.serverPort
+
         sSocket = self.serverSocket
+
+        if cmd == '{"cmd": "whois"}':
+            ip = self.multicastAddress
+            port = self.multicastPort
+        else:
+            ip = self.ipaddr
+            port = self.serverPort
 
         try:
             sSocket.settimeout(5.0)
@@ -43,7 +50,9 @@ class AqaraGateway:
         if recvData is not None:
             try:
                 jsonMsg = json.loads(decodedData)
-                if jsonMsg['cmd'] == "get_id_list":
+                if jsonMsg['cmd'] == "iam":
+                    return jsonMsg
+                elif jsonMsg['cmd'] == "get_id_list":
                     return json.loads(jsonMsg)
                 elif jsonMsg['cmd'] == "get_id_list_ack":
                     devices_SID = json.loads(jsonMsg['data'])
@@ -78,3 +87,9 @@ class AqaraGateway:
         resp = self.socketSendMsg(cmd)
         respData = json.loads(resp['data'])
         return float(respData['humidity'])/100
+
+    def get_gatewayConnexionData(self):
+        cmd = '{"cmd": "whois"}'
+        resp = self.socketSendMsg(cmd)
+        self.ipaddr = resp['ip']
+        self.serverPort = int(resp['port'])
