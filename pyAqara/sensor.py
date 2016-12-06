@@ -4,16 +4,8 @@ from homeassistant.util import Throttle
 from datetime import timedelta
 import logging
 
-DOMAIN = 'Aqara'
-
 _LOGGER = logging.getLogger(__name__)
 
-# Need to use own implementation
-# REQUIREMENTS =
-# ['https://github.com/fooxy/homeassisitant-pyAqara/archive/v0.1-alpha.zip#pyAqara==0.1']
-
-# Magnet Sensor need frequent polls since it's possible that ist's not
-# open that long
 MIN_TIME_BETWEEN_SWITCH_UPDATES = timedelta(seconds=3)
 MIN_TIME_BETWEEN_MOTION_UPDATES = timedelta(seconds=3)
 MIN_TIME_BETWEEN_MAGNET_UPDATES = timedelta(seconds=3)
