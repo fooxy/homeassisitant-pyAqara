@@ -11,6 +11,3 @@ https://github.com/snOOrz/homebridge-aqara
 This repository is contain the core code.
 For the custom component refer to efer to the link below
 https://github.com/fooxy/homeassistant-aqara
-
-
-
