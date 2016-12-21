@@ -80,14 +80,15 @@ class AqaraGateway:
         if recvData is not None:
             try:
                 jsonMsg = json.loads(decodedJson)
-                if jsonMsg['cmd'] == 'iam':
+                cmd = jsonMsg['cmd']
+                if cmd == 'iam':
                     return jsonMsg
-                if jsonMsg['cmd'] == "get_id_list":
+                if cmd == "get_id_list":
                     return json.loads(jsonMsg['data'])
-                elif jsonMsg['cmd'] == "get_id_list_ack":
+                elif cmd == "get_id_list_ack":
                     devices_SID = json.loads(jsonMsg['data'])
                     return devices_SID
-                elif jsonMsg['cmd'] == "read_ack":
+                elif cmd == "read_ack":
                     return jsonMsg
                 else:
                     _LOGGER.info("Got unknown response: %s", decodedJson)
@@ -111,19 +112,28 @@ class AqaraGateway:
 # # Multicast Command
 
     def _prepare_socket(self):
-        print('Connector_prepare_socket()')
+        # sock = socket.socket(socket.AF_INET,  # Internet
+        #                      socket.SOCK_DGRAM,  # UDP
+        #                      socket.IPPROTO_UDP)  
+
         sock = socket.socket(socket.AF_INET,  # Internet
-                             socket.SOCK_DGRAM)  # UDP
+                             socket.SOCK_DGRAM)  # UDP  
 
-        sock.bind(("0.0.0.0", self.MULTICAST_PORT))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        mreq = struct.pack("=4sl", socket.inet_aton(self.MULTICAST_ADDRESS),
-                           socket.INADDR_ANY)
+        # try:
+        #     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # except AttributeError:
+        #     pass # Some systems don't support SO_REUSEPORT
+
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF,
-                        self.SOCKET_BUFSIZE)
+
+        mreq = struct.pack("=4sl", socket.inet_aton(self.MULTICAST_ADDRESS),socket.INADDR_ANY)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF,self.SOCKET_BUFSIZE)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+        sock.bind(("0.0.0.0", self.MULTICAST_PORT))
 
         return sock
 
