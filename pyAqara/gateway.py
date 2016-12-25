@@ -9,11 +9,11 @@ from queue import Queue
 _LOGGER = logging.getLogger(__name__)
 
 class AqaraGateway:
-    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     GATEWAY_IP = None
     GATEWAY_PORT = None
     GATEWAY_SID = None
+    GATEWAY_TOKEN = None
 
     MULTICAST_PORT = 9898
     GATEWAY_DISCOVERY_PORT = 4321
@@ -60,23 +60,27 @@ class AqaraGateway:
             ip = self.GATEWAY_IP
             port = self.GATEWAY_PORT
 
-        sSocket = self.serverSocket
-        try:
-            sSocket.settimeout(5.0)
-            sSocket.sendto(cmd.encode(), (ip, port))
-            sSocket.settimeout(5.0)
-            recvData, addr = sSocket.recvfrom(1024)
-            if len(recvData) is not None:
-                decodedJson = recvData.decode()
-            else:
-                _LOGGER.error("no response from gateway")
-                recvData = None
-        except socket.timeout:
-            _LOGGER.error(
-                "Timeout on socket - Failed to connect the ip %s", ip)
-            return None
-            sSocket.close()
+        tempSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        retryCount = 0
+        recvData = None
 
+        while retryCount<3 and recvData==None:
+            try:
+                tempSocket.settimeout(2 + retryCount*2)
+                tempSocket.sendto(cmd.encode(), (ip, port))
+                tempSocket.settimeout(2 + retryCount*2)
+                recvData, addr = tempSocket.recvfrom(1024)
+                if len(recvData) is not None:
+                    decodedJson = recvData.decode()
+                else:
+                    _LOGGER.error("no response from gateway")
+            except socket.timeout:
+                retryCount += 1
+                _LOGGER.error(
+                    "Timeout on socket - Failed to connect the ip %s, automatic retry", ip)
+        
+        tempSocket.close()
+        
         if recvData is not None:
             try:
                 jsonMsg = json.loads(decodedJson)
@@ -86,15 +90,19 @@ class AqaraGateway:
                 if cmd == "get_id_list":
                     return json.loads(jsonMsg['data'])
                 elif cmd == "get_id_list_ack":
+                    self.GATEWAY_TOKEN = jsonMsg['token']
                     devices_SID = json.loads(jsonMsg['data'])
                     return devices_SID
-                elif cmd == "read_ack":
+                elif cmd in ["read_ack","write_ack"]:
+                    if self._running:
+                        self._queue.put(jsonMsg) 
                     return jsonMsg
                 else:
                     _LOGGER.info("Got unknown response: %s", decodedJson)
             except:
                 _LOGGER.error("Aqara Gateway Failed to manage the json")
         else:
+            _LOGGER.error("Maximum retry times exceed: %s", retryCount)
             return None
 
     def sendCmd(self, cmd):
@@ -174,6 +182,8 @@ class AqaraGateway:
                 model = packet['model']
                 data = packet['data']
                 try:
+                    if 'token' in packet:
+                        self.GATEWAY_TOKEN = packet['token']
                     if cmd == 'iam':
                         print('iam')
                     elif cmd == 'get_id_list_ack':
@@ -193,7 +203,7 @@ class AqaraGateway:
                                             sid,
                                             cmd,
                                             json.loads(data))
-                    elif cmd == 'read_ack':
+                    elif cmd == 'write_ack':
                         for deviceCallback in self._deviceCallbacks.get(sid, ()):
                             deviceCallback(model,
                                         sid,
